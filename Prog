@@ -1,0 +1,147 @@
+// Velocity Tracker with Bar Path Linearity Analysis (simplified UI)
+
+let video;
+let dotX = null, dotY = null;
+let positions = [];
+let tracking = false;
+let velocity = 0;
+let liftType = "Squat";
+let frameIndex = 0;
+let isPlaying = false;
+
+function setup() {
+  createCanvas(640, 480);
+  textFont('Orbitron');
+  background('#F8BBD0');
+  textSize(16);
+
+  video = createCapture(VIDEO);
+  video.size(640, 480);
+  video.hide();
+
+  let uploadButton = createFileInput(handleFile);
+  uploadButton.position(20, 20);
+
+  let liftSelect = createSelect();
+  liftSelect.position(160, 20);
+  liftSelect.option("Squat");
+  liftSelect.option("Bench");
+  liftSelect.option("Deadlift");
+  liftSelect.changed(() => liftType = liftSelect.value());
+
+  let undoButton = createButton("Undo Dot");
+  undoButton.position(240, 20);
+  undoButton.mousePressed(() => {
+    dotX = null;
+    dotY = null;
+    tracking = false;
+    positions = [];
+  });
+
+  let playButton = createButton("Play");
+  playButton.position(340, 20);
+  playButton.mousePressed(() => {
+    if (dotX !== null && dotY !== null && video.elt.readyState >= 2) {
+      isPlaying = true;
+      video.loop();
+    }
+  });
+}
+
+function handleFile(file) {
+  if (file.type === 'video') {
+    video = createVideo([file.data], () => video.loop());
+    video.hide();
+  }
+}
+
+function draw() {
+  background('#F8BBD0');
+  image(video, 0, 0);
+
+  if (isPlaying && dotX !== null && dotY !== null) {
+    let px = video.width * dotX / width;
+    let py = video.height * dotY / height;
+    // Fake tracking for demo — use real tracking logic here
+    let noiseX = random(-1, 1);
+    let noiseY = random(-1, 1);
+    let currentX = dotX + noiseX;
+    let currentY = dotY + noiseY;
+    positions.push({ x: currentX, y: currentY, time: millis() });
+    dotX = currentX;
+    dotY = currentY;
+    drawPath();
+  } else if (positions.length > 0) {
+    drawPath();
+    calculateVelocity();
+    showData();
+  }
+
+  if (dotX !== null && dotY !== null) {
+    fill('#EC407A');
+    noStroke();
+    ellipse(dotX, dotY, 10, 10);
+  }
+}
+
+function mousePressed() {
+  if (!tracking && dotX === null && dotY === null) {
+    dotX = mouseX;
+    dotY = mouseY;
+    tracking = true;
+  }
+}
+
+function drawPath() {
+  stroke('#C2185B');
+  noFill();
+  beginShape();
+  for (let pos of positions) {
+    vertex(pos.x, pos.y);
+  }
+  endShape();
+  for (let pos of positions) {
+    fill('#F06292');
+    noStroke();
+    ellipse(pos.x, pos.y, 5, 5);
+  }
+}
+
+function calculateVelocity() {
+  if (positions.length < 2) return;
+  let p1 = positions[0];
+  let p2 = positions[positions.length - 1];
+  let dx = p2.x - p1.x;
+  let dy = p2.y - p1.y;
+  let dt = (p2.time - p1.time) / 1000.0;
+  velocity = dist(p1.x, p1.y, p2.x, p2.y) / dt;
+}
+
+function showData() {
+  fill(0);
+  textAlign(LEFT);
+  textSize(14);
+  text(`Lift: ${liftType}`, 20, height - 60);
+  text(`Velocity: ${velocity.toFixed(2)} px/s`, 20, height - 40);
+  const linearity = calcLinearity();
+  const linearityColor = getLinearityColor(linearity);
+  fill(linearityColor);
+  text(`Bar Path Linearity: ${linearity.toFixed(2)}%`, 20, height - 20);
+}
+
+function calcLinearity() {
+  if (positions.length < 2) return 100;
+  let total = 0;
+  let verticals = 0;
+  for (let i = 1; i < positions.length; i++) {
+    total += dist(positions[i].x, positions[i].y, positions[i - 1].x, positions[i - 1].y);
+    verticals += abs(positions[i].y - positions[i - 1].y);
+  }
+  return (verticals / total) * 100;
+}
+
+function getLinearityColor(linearity) {
+  if (linearity > 95) return color('#4CAF50');
+  else if (linearity > 85) return color('#FFC107');
+  else return color('#F44336');
+}
