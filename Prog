@@ -1,4 +1,4 @@
-// Velocity Tracker with Bar Path Linearity Analysis (adjustable view + pink star dot + proper controls)
+// Velocity Tracker with Bar Path Linearity Analysis (improved toggle, placement, tracking, and sync)
 
 let video;
 let dotX = null, dotY = null;
@@ -14,6 +14,8 @@ let offsetY = 0;
 let videoReady = false;
 let playButton;
 let placingDot = false;
+let lastFrameTime = 0;
+let prevFrame = null;
 
 function setup() {
   canvas = createCanvas(640, 480);
@@ -33,9 +35,7 @@ function setup() {
 
   let placeDotButton = createButton("Place Dot");
   placeDotButton.position(240, 20);
-  placeDotButton.mousePressed(() => {
-    placingDot = true;
-  });
+  placeDotButton.mousePressed(() => placingDot = true);
 
   let undoButton = createButton("Undo Dot");
   undoButton.position(320, 20);
@@ -52,44 +52,24 @@ function setup() {
 
   playButton = createButton("Play");
   playButton.position(420, 20);
-  playButton.mousePressed(() => {
-    if (!video || !videoReady || dotX === null || dotY === null) return;
-
-    if (isPlaying) {
-      video.pause();
-      isPlaying = false;
-      playButton.html("Play");
-    } else {
-      video.play();
-      isPlaying = true;
-      playButton.html("Pause");
-    }
-  });
+  playButton.mousePressed(togglePlayback);
 
   let scaleSlider = createSlider(0.5, 2, 1, 0.01);
   scaleSlider.position(width + 10, 40);
-  scaleSlider.input(() => {
-    scaleFactor = scaleSlider.value();
-  });
+  scaleSlider.input(() => scaleFactor = scaleSlider.value());
 
   let offsetXSlider = createSlider(-320, 320, 0);
   offsetXSlider.position(width + 10, 80);
-  offsetXSlider.input(() => {
-    offsetX = offsetXSlider.value();
-  });
+  offsetXSlider.input(() => offsetX = offsetXSlider.value());
 
   let offsetYSlider = createSlider(-240, 240, 0);
   offsetYSlider.position(width + 10, 120);
-  offsetYSlider.input(() => {
-    offsetY = offsetYSlider.value();
-  });
+  offsetYSlider.input(() => offsetY = offsetYSlider.value());
 }
 
 function handleFile(file) {
   if (file.type === 'video') {
-    video = createVideo([file.data], () => {
-      video.hide();
-    });
+    video = createVideo([file.data], () => video.hide());
     video.elt.onloadeddata = () => {
       videoReady = true;
       video.pause();
@@ -97,8 +77,24 @@ function handleFile(file) {
   }
 }
 
+function togglePlayback() {
+  if (!video || !videoReady || dotX === null || dotY === null) return;
+
+  if (isPlaying) {
+    video.pause();
+    isPlaying = false;
+    playButton.html("Play");
+  } else {
+    video.play();
+    isPlaying = true;
+    lastFrameTime = millis();
+    playButton.html("Pause");
+  }
+}
+
 function draw() {
   background('#F8BBD0');
+
   if (video && videoReady) {
     push();
     translate(width / 2 + offsetX, height / 2 + offsetY);
@@ -108,23 +104,23 @@ function draw() {
     pop();
   }
 
-  if (isPlaying && dotX !== null && dotY !== null) {
-    let noiseX = random(-1, 1);
-    let noiseY = random(-1, 1);
-    let currentX = dotX + noiseX;
-    let currentY = dotY + noiseY;
-    positions.push({ x: currentX, y: currentY, time: millis() });
-    dotX = currentX;
-    dotY = currentY;
-    drawPath();
-  } else if (positions.length > 0) {
-    drawPath();
-    calculateVelocity();
-    showData();
-  }
-
   if (dotX !== null && dotY !== null) {
     drawStar(dotX, dotY, 5, 10, 5, '#EC407A');
+  }
+
+  if (isPlaying && tracking && video.time() !== prevFrame) {
+    let canvasX = width / 2 + offsetX + dotX * scaleFactor;
+    let canvasY = height / 2 + offsetY + dotY * scaleFactor;
+    positions.push({ x: canvasX, y: canvasY, time: millis() });
+    prevFrame = video.time();
+  }
+
+  if (positions.length > 0) {
+    drawPath();
+    if (!isPlaying) {
+      calculateVelocity();
+      showData();
+    }
   }
 }
 
