@@ -102,14 +102,17 @@ function draw() {
   }
 
   if (dotX !== null && dotY !== null) {
-    drawStar(dotX, dotY, 5, 10, 5, '#EC407A');
+    drawStar(dotX, dotY, 5, 10, 5, '#EC407A'); // draw pink star
   }
 }
 
 function mousePressed() {
   if (!tracking && dotX === null && dotY === null) {
-    dotX = mouseX;
-    dotY = mouseY;
+    // Adjust mouse for zoom + pan
+    const adjustedX = (mouseX - offsetX) / scaleFactor;
+    const adjustedY = (mouseY - offsetY) / scaleFactor;
+    dotX = adjustedX;
+    dotY = adjustedY;
     tracking = true;
   }
 }
