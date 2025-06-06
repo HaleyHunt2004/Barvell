@@ -11,22 +11,19 @@ let canvas;
 let scaleFactor = 1;
 let offsetX = 0;
 let offsetY = 0;
+let videoReady = false;
 
 function setup() {
-  canvas = createCanvas(700, 700);
+  canvas = createCanvas(640, 480);
   textFont('Orbitron');
   background('#F8BBD0');
   textSize(16);
 
-  video = createCapture(VIDEO);
-  video.size(640, 480);
-  video.hide();
-
   let uploadButton = createFileInput(handleFile);
-  uploadButton.position(10, 20);
+  uploadButton.position(20, 20);
 
   let liftSelect = createSelect();
-  liftSelect.position(180, 20);
+  liftSelect.position(160, 20);
   liftSelect.option("Squat");
   liftSelect.option("Bench");
   liftSelect.option("Deadlift");
@@ -39,14 +36,16 @@ function setup() {
     dotY = null;
     tracking = false;
     positions = [];
+    isPlaying = false;
+    if (video) video.pause();
   });
 
   let playButton = createButton("Play");
   playButton.position(340, 20);
   playButton.mousePressed(() => {
-    if (dotX !== null && dotY !== null && video.elt.readyState >= 2) {
+    if (dotX !== null && dotY !== null && videoReady) {
       isPlaying = true;
-      video.loop();
+      video.play();
     }
   });
 
@@ -72,19 +71,23 @@ function setup() {
 function handleFile(file) {
   if (file.type === 'video') {
     video = createVideo([file.data], () => {
-      video.loop();
+      videoReady = true;
+      video.hide();
     });
-    video.hide();
+    video.elt.onloadeddata = () => videoReady = true;
   }
 }
 
 function draw() {
   background('#F8BBD0');
-  push();
-  translate(offsetX, offsetY);
-  scale(scaleFactor);
-  image(video, 0, 0);
-  pop();
+  if (video && videoReady) {
+    push();
+    translate(width / 2 + offsetX, height / 2 + offsetY);
+    scale(scaleFactor);
+    imageMode(CENTER);
+    image(video, 0, 0);
+    pop();
+  }
 
   if (isPlaying && dotX !== null && dotY !== null) {
     let noiseX = random(-1, 1);
@@ -102,15 +105,14 @@ function draw() {
   }
 
   if (dotX !== null && dotY !== null) {
-    drawStar(dotX, dotY, 5, 10, 5, '#EC407A'); // draw pink star
+    drawStar(dotX, dotY, 5, 10, 5, '#EC407A');
   }
 }
 
 function mousePressed() {
-  if (!tracking && dotX === null && dotY === null) {
-    // Adjust mouse for zoom + pan
-    const adjustedX = (mouseX - offsetX) / scaleFactor;
-    const adjustedY = (mouseY - offsetY) / scaleFactor;
+  if (!tracking && video && videoReady) {
+    let adjustedX = (mouseX - width / 2 - offsetX) / scaleFactor;
+    let adjustedY = (mouseY - height / 2 - offsetY) / scaleFactor;
     dotX = adjustedX;
     dotY = adjustedY;
     tracking = true;
