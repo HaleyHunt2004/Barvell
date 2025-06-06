@@ -1,4 +1,4 @@
-// Velocity Tracker with Bar Path Linearity Analysis (adjustable view + pink star dot)
+// Velocity Tracker with Bar Path Linearity Analysis (adjustable view + pink star dot + proper controls)
 
 let video;
 let dotX = null, dotY = null;
@@ -12,6 +12,7 @@ let scaleFactor = 1;
 let offsetX = 0;
 let offsetY = 0;
 let videoReady = false;
+let playButton;
 
 function setup() {
   canvas = createCanvas(640, 480);
@@ -38,14 +39,22 @@ function setup() {
     positions = [];
     isPlaying = false;
     if (video) video.pause();
+    playButton.html("Play");
   });
 
-  let playButton = createButton("Play");
+  playButton = createButton("Play");
   playButton.position(340, 20);
   playButton.mousePressed(() => {
-    if (dotX !== null && dotY !== null && videoReady) {
-      isPlaying = true;
+    if (!video || !videoReady || dotX === null || dotY === null) return;
+
+    if (isPlaying) {
+      video.pause();
+      isPlaying = false;
+      playButton.html("Play");
+    } else {
       video.play();
+      isPlaying = true;
+      playButton.html("Pause");
     }
   });
 
