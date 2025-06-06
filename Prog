@@ -13,7 +13,7 @@ let offsetX = 0;
 let offsetY = 0;
 
 function setup() {
-  canvas = createCanvas(640, 480);
+  canvas = createCanvas(700, 700);
   textFont('Orbitron');
   background('#F8BBD0');
   textSize(16);
@@ -23,10 +23,10 @@ function setup() {
   video.hide();
 
   let uploadButton = createFileInput(handleFile);
-  uploadButton.position(20, 20);
+  uploadButton.position(10, 20);
 
   let liftSelect = createSelect();
-  liftSelect.position(160, 20);
+  liftSelect.position(180, 20);
   liftSelect.option("Squat");
   liftSelect.option("Bench");
   liftSelect.option("Deadlift");
