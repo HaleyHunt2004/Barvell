@@ -1,4 +1,4 @@
-// Velocity Tracker with Bar Path Linearity Analysis (simplified UI)
+// Velocity Tracker with Bar Path Linearity Analysis (adjustable view + pink star dot)
 
 let video;
 let dotX = null, dotY = null;
@@ -6,11 +6,14 @@ let positions = [];
 let tracking = false;
 let velocity = 0;
 let liftType = "Squat";
-let frameIndex = 0;
 let isPlaying = false;
+let canvas;
+let scaleFactor = 1;
+let offsetX = 0;
+let offsetY = 0;
 
 function setup() {
-  createCanvas(640, 480);
+  canvas = createCanvas(640, 480);
   textFont('Orbitron');
   background('#F8BBD0');
   textSize(16);
@@ -46,23 +49,44 @@ function setup() {
       video.loop();
     }
   });
+
+  let scaleSlider = createSlider(0.5, 2, 1, 0.01);
+  scaleSlider.position(420, 20);
+  scaleSlider.input(() => {
+    scaleFactor = scaleSlider.value();
+  });
+
+  let offsetXSlider = createSlider(-320, 320, 0);
+  offsetXSlider.position(20, 60);
+  offsetXSlider.input(() => {
+    offsetX = offsetXSlider.value();
+  });
+
+  let offsetYSlider = createSlider(-240, 240, 0);
+  offsetYSlider.position(160, 60);
+  offsetYSlider.input(() => {
+    offsetY = offsetYSlider.value();
+  });
 }
 
 function handleFile(file) {
   if (file.type === 'video') {
-    video = createVideo([file.data], () => video.loop());
+    video = createVideo([file.data], () => {
+      video.loop();
+    });
     video.hide();
   }
 }
 
 function draw() {
   background('#F8BBD0');
+  push();
+  translate(offsetX, offsetY);
+  scale(scaleFactor);
   image(video, 0, 0);
+  pop();
 
   if (isPlaying && dotX !== null && dotY !== null) {
-    let px = video.width * dotX / width;
-    let py = video.height * dotY / height;
-    // Fake tracking for demo — use real tracking logic here
     let noiseX = random(-1, 1);
     let noiseY = random(-1, 1);
     let currentX = dotX + noiseX;
@@ -78,9 +102,7 @@ function draw() {
   }
 
   if (dotX !== null && dotY !== null) {
-    fill('#EC407A');
-    noStroke();
-    ellipse(dotX, dotY, 10, 10);
+    drawStar(dotX, dotY, 5, 10, 5, '#EC407A');
   }
 }
 
@@ -93,7 +115,7 @@ function mousePressed() {
 }
 
 function drawPath() {
-  stroke('#C2185B');
+  stroke('#F8BBD0');
   noFill();
   beginShape();
   for (let pos of positions) {
@@ -101,18 +123,33 @@ function drawPath() {
   }
   endShape();
   for (let pos of positions) {
-    fill('#F06292');
+    fill('#F8BBD0');
     noStroke();
     ellipse(pos.x, pos.y, 5, 5);
   }
+}
+
+function drawStar(x, y, radius1, radius2, npoints, col) {
+  fill(col);
+  noStroke();
+  let angle = TWO_PI / npoints;
+  let halfAngle = angle / 2.0;
+  beginShape();
+  for (let a = 0; a < TWO_PI; a += angle) {
+    let sx = x + cos(a) * radius2;
+    let sy = y + sin(a) * radius2;
+    vertex(sx, sy);
+    sx = x + cos(a + halfAngle) * radius1;
+    sy = y + sin(a + halfAngle) * radius1;
+    vertex(sx, sy);
+  }
+  endShape(CLOSE);
 }
 
 function calculateVelocity() {
   if (positions.length < 2) return;
   let p1 = positions[0];
   let p2 = positions[positions.length - 1];
-  let dx = p2.x - p1.x;
-  let dy = p2.y - p1.y;
   let dt = (p2.time - p1.time) / 1000.0;
   velocity = dist(p1.x, p1.y, p2.x, p2.y) / dt;
 }
