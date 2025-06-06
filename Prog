@@ -13,6 +13,7 @@ let offsetX = 0;
 let offsetY = 0;
 let videoReady = false;
 let playButton;
+let placingDot = false;
 
 function setup() {
   canvas = createCanvas(640, 480);
@@ -30,20 +31,27 @@ function setup() {
   liftSelect.option("Deadlift");
   liftSelect.changed(() => liftType = liftSelect.value());
 
+  let placeDotButton = createButton("Place Dot");
+  placeDotButton.position(240, 20);
+  placeDotButton.mousePressed(() => {
+    placingDot = true;
+  });
+
   let undoButton = createButton("Undo Dot");
-  undoButton.position(240, 20);
+  undoButton.position(320, 20);
   undoButton.mousePressed(() => {
     dotX = null;
     dotY = null;
     tracking = false;
     positions = [];
     isPlaying = false;
+    placingDot = false;
     if (video) video.pause();
     playButton.html("Play");
   });
 
   playButton = createButton("Play");
-  playButton.position(340, 20);
+  playButton.position(420, 20);
   playButton.mousePressed(() => {
     if (!video || !videoReady || dotX === null || dotY === null) return;
 
@@ -59,19 +67,19 @@ function setup() {
   });
 
   let scaleSlider = createSlider(0.5, 2, 1, 0.01);
-  scaleSlider.position(420, 20);
+  scaleSlider.position(width + 10, 40);
   scaleSlider.input(() => {
     scaleFactor = scaleSlider.value();
   });
 
   let offsetXSlider = createSlider(-320, 320, 0);
-  offsetXSlider.position(20, 60);
+  offsetXSlider.position(width + 10, 80);
   offsetXSlider.input(() => {
     offsetX = offsetXSlider.value();
   });
 
   let offsetYSlider = createSlider(-240, 240, 0);
-  offsetYSlider.position(160, 60);
+  offsetYSlider.position(width + 10, 120);
   offsetYSlider.input(() => {
     offsetY = offsetYSlider.value();
   });
@@ -119,12 +127,13 @@ function draw() {
 }
 
 function mousePressed() {
-  if (!tracking && video && videoReady) {
+  if (!tracking && placingDot && video && videoReady) {
     let adjustedX = (mouseX - width / 2 - offsetX) / scaleFactor;
     let adjustedY = (mouseY - height / 2 - offsetY) / scaleFactor;
     dotX = adjustedX;
     dotY = adjustedY;
     tracking = true;
+    placingDot = false;
   }
 }
 
