@@ -88,10 +88,12 @@ function setup() {
 function handleFile(file) {
   if (file.type === 'video') {
     video = createVideo([file.data], () => {
-      videoReady = true;
       video.hide();
     });
-    video.elt.onloadeddata = () => videoReady = true;
+    video.elt.onloadeddata = () => {
+      videoReady = true;
+      video.pause();
+    };
   }
 }
 
