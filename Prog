@@ -100,7 +100,7 @@ function draw() {
     translate(width / 2 + offsetX, height / 2 + offsetY);
     scale(scaleFactor);
     imageMode(CENTER);
-    image(video, 0, 0);
+    image(video, 10, 10);
     pop();
   }
 
